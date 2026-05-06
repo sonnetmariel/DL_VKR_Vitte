@@ -1,0 +1,24 @@
+<svg width="960" height="540" viewBox="0 0 960 540" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="540" rx="36" fill="#F4F7FB"/>
+
+  <rect x="72" y="64" width="816" height="412" rx="28" fill="#FFFFFF" stroke="#D8E0EA" stroke-width="2"/>
+
+  <circle cx="244" cy="178" r="46" fill="#DCEBFF"/>
+  <path d="M162 386L320 245L436 346L504 292L710 386H162Z" fill="#D9E5F2"/>
+  <path d="M162 386L320 245L436 346L504 292L710 386H162Z" stroke="#AEBED0" stroke-width="3" stroke-linejoin="round"/>
+
+  <rect x="584" y="116" width="220" height="40" rx="20" fill="#EEF3F8"/>
+  <rect x="584" y="176" width="164" height="28" rx="14" fill="#EEF3F8"/>
+  <rect x="584" y="220" width="196" height="28" rx="14" fill="#EEF3F8"/>
+
+  <rect x="584" y="292" width="220" height="86" rx="18" fill="#F7FAFD" stroke="#D8E0EA" stroke-width="2"/>
+  <path d="M628 335H760" stroke="#AEBED0" stroke-width="8" stroke-linecap="round"/>
+  <path d="M628 361H716" stroke="#CBD6E2" stroke-width="8" stroke-linecap="round"/>
+
+  <circle cx="476" cy="270" r="54" fill="#FFFFFF" stroke="#AEBED0" stroke-width="3"/>
+  <path d="M454 270L471 287L502 251" stroke="#5B7FA6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="480" y="460" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#5D6B7A">
+    Загрузите изображение для нейросетевой обработки
+  </text>
+</svg>
