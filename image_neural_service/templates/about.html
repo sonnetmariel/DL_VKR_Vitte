@@ -1,0 +1,248 @@
+<!-- templates/about.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">О системе</p>
+        <h1 class="page-heading__title">Интеллектуальный сервис обработки изображений</h1>
+        <p class="page-heading__text">
+            Приложение объединяет артефакты двух экспериментов:
+            сегментацию объекта животного и нейросетевое восстановление качества изображения.
+            Текстовый модуль используется только для объяснения результата по численным данным.
+        </p>
+    </div>
+
+    <div class="page-heading__actions">
+        <a class="button button--secondary" href="{{ url_for('index') }}">
+            Перейти к обработке
+        </a>
+        <a class="button button--secondary" href="{{ url_for('history') }}">
+            История
+        </a>
+    </div>
+</section>
+
+<section class="layout-grid">
+    <div class="card card--main">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Назначение</p>
+                <h2 class="card__title">Что делает приложение</h2>
+            </div>
+        </div>
+
+        <div class="content-text">
+            <p>
+                Система принимает изображение животного, выполняет нейросетевую обработку и
+                сохраняет результат в локальной истории. Пользователь может запустить полный
+                конвейер, отдельное восстановление качества или отдельную сегментацию объекта.
+            </p>
+
+            <p>
+                Первый эксперимент отвечает за выделение животного на изображении. Модель строит
+                бинарную маску объекта, после чего приложение может удалить фон, размыть фон,
+                заменить фон на простой сгенерированный вариант или показать саму маску.
+            </p>
+
+            <p>
+                Второй эксперимент отвечает за восстановление качества изображения. Остаточная
+                нейросетевая модель рассчитывает поправку к исходному изображению, а калибровка
+                выбирает силу правки с учетом предполагаемого типа ухудшения.
+            </p>
+        </div>
+    </div>
+
+    <aside class="card card--side">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Состояние</p>
+                <h2 class="card__title">Проверка файлов</h2>
+            </div>
+        </div>
+
+        {% if artifact_problems %}
+            <div class="notice notice--danger">
+                <strong>Есть проблемы с артефактами.</strong>
+                <p>
+                    Обработка будет недоступна, пока обязательные файлы моделей и настроек
+                    не будут размещены в каталоге artifacts.
+                </p>
+            </div>
+
+            <ul class="plain-list">
+                {% for problem in artifact_problems %}
+                    <li>{{ problem }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="notice notice--success">
+                <strong>Обязательные артефакты найдены.</strong>
+                <p>
+                    Приложение готово к обработке изображений.
+                </p>
+            </div>
+        {% endif %}
+
+        <dl class="definition-list">
+            <div>
+                <dt>Устройство вычислений</dt>
+                <dd>{{ model_status.device }}</dd>
+            </div>
+            <div>
+                <dt>Графический ускоритель</dt>
+                <dd>
+                    {% if model_status.cuda_available %}
+                        {{ model_status.cuda_device_name }}
+                    {% else %}
+                        не найден
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt>Текстовый модуль</dt>
+                <dd>
+                    {% if llm_diagnostics.enabled %}
+                        включен
+                    {% else %}
+                        отключен
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </aside>
+</section>
+
+<section class="model-grid">
+    <article class="card">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Первый эксперимент</p>
+                <h2 class="card__title">Сегментация объекта животного</h2>
+            </div>
+        </div>
+
+        <dl class="definition-list">
+            <div>
+                <dt>Файл модели</dt>
+                <dd>{{ model_status.segmentation.model_path }}</dd>
+            </div>
+            <div>
+                <dt>Файл настроек</dt>
+                <dd>{{ model_status.segmentation.config_path }}</dd>
+            </div>
+            <div>
+                <dt>Файл метаданных</dt>
+                <dd>{{ model_status.segmentation.metadata_path }}</dd>
+            </div>
+            <div>
+                <dt>Файл меток</dt>
+                <dd>{{ model_status.segmentation.labels_path }}</dd>
+            </div>
+        </dl>
+
+        <div class="notice notice--soft">
+            Модель используется для построения маски объекта. На основе маски выполняется
+            прозрачный фон, размытие фона, замена фона или визуальное выделение объекта.
+        </div>
+    </article>
+
+    <article class="card">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Второй эксперимент</p>
+                <h2 class="card__title">Восстановление качества изображения</h2>
+            </div>
+        </div>
+
+        <dl class="definition-list">
+            <div>
+                <dt>Файл модели</dt>
+                <dd>{{ model_status.restoration.model_path }}</dd>
+            </div>
+            <div>
+                <dt>Файл настроек</dt>
+                <dd>{{ model_status.restoration.config_path }}</dd>
+            </div>
+            <div>
+                <dt>Файл текстового отчета</dt>
+                <dd>{{ model_status.restoration.text_report_config_path }}</dd>
+            </div>
+        </dl>
+
+        <div class="notice notice--soft">
+            Восстановление выполняется остаточной моделью. Приложение не рассчитывает
+            структурное сходство для пользовательского файла, потому что пользователь не
+            загружает эталонное изображение.
+        </div>
+    </article>
+</section>
+
+<section class="card">
+    <div class="card__header">
+        <div>
+            <p class="eyebrow">ProxyAPI</p>
+            <h2 class="card__title">Настройки текстового модуля</h2>
+        </div>
+    </div>
+
+    <dl class="definition-list definition-list--grid">
+        <div>
+            <dt>Адрес программного интерфейса</dt>
+            <dd>{{ llm_diagnostics.base_url }}</dd>
+        </div>
+        <div>
+            <dt>Модели</dt>
+            <dd>{{ llm_diagnostics.models | join(", ") }}</dd>
+        </div>
+        <div>
+            <dt>Температура</dt>
+            <dd>{{ llm_diagnostics.temperature }}</dd>
+        </div>
+        <div>
+            <dt>Ограничение ответа</dt>
+            <dd>{{ llm_diagnostics.max_tokens }}</dd>
+        </div>
+        <div>
+            <dt>Время ожидания</dt>
+            <dd>{{ llm_diagnostics.timeout_seconds }} секунд</dd>
+        </div>
+        <div>
+            <dt>Ключ доступа</dt>
+            <dd>{{ llm_diagnostics.api_key }}</dd>
+        </div>
+    </dl>
+
+    <div class="notice">
+        Изображения не отправляются в языковую модель. В запрос передаются только режимы
+        обработки, численные показатели, предупреждения и краткое описание результата.
+    </div>
+</section>
+
+{% if about_data.restoration_example_report %}
+<section class="card">
+    <div class="card__header">
+        <div>
+            <p class="eyebrow">Пример</p>
+            <h2 class="card__title">Итоговый отчет второго эксперимента</h2>
+        </div>
+    </div>
+
+    <article class="markdown-report">
+        <pre>{{ about_data.restoration_example_report }}</pre>
+    </article>
+</section>
+{% endif %}
+
+<section class="card">
+    <details class="details-block">
+        <summary>Показать техническую конфигурацию</summary>
+        <pre class="json-box">{{ {
+            "config_summary": config_summary,
+            "artifact_status": artifact_status,
+            "model_status": model_status,
+            "llm_diagnostics": llm_diagnostics
+        } | tojson(indent=2) }}</pre>
+    </details>
+</section>
+{% endblock %}
