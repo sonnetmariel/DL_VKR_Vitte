@@ -99,3 +99,18 @@ DL_VKR_Vitte/
     ├── runtime/
     ├── static/
     └── templates/
+
+Проект использует:
+Python;
+Flask;
+PyTorch;
+torchvision;
+segmentation_models_pytorch;
+timm;
+OpenCV;
+Pillow;
+NumPy;
+pandas;
+SQLite;
+python-dotenv;
+ProxyAPI для опциональной генерации текстовых пояснений.
