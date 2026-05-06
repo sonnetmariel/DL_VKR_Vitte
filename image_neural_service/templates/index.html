@@ -1,0 +1,340 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero__content">
+        <p class="eyebrow">Московский университет им. С.Ю. Витте</p>
+        <h1 class="hero__title">Генерация и обработка изображений при помощи нейросетей</h1>
+        <p class="hero__text">
+            Система объединяет результаты двух экспериментов: нейросетевую сегментацию объекта
+            животного и восстановление качества изображения. После обработки формируется понятный
+            отчет с режимами, предупреждениями и интерпретацией результата.
+        </p>
+
+        <div class="hero__badges">
+            <span class="badge">сегментация объекта</span>
+            <span class="badge">восстановление качества</span>
+            <span class="badge">замена или размытие фона</span>
+            <span class="badge">отчет по результату</span>
+        </div>
+    </div>
+
+    <div class="hero__panel">
+        <div class="metric-card">
+            <span class="metric-card__value">0.9332</span>
+            <span class="metric-card__label">Dice модели сегментации</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-card__value">0.8471</span>
+            <span class="metric-card__label">структурное сходство восстановления</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-card__value">+1.4982</span>
+            <span class="metric-card__label">прирост отношения сигнала к искажению</span>
+        </div>
+    </div>
+</section>
+
+<section class="layout-grid">
+    <div class="card card--main">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Загрузка изображения</p>
+                <h2 class="card__title">Выберите файл и сценарий обработки</h2>
+            </div>
+            <span class="card__hint">JPG, JPEG, PNG, WEBP</span>
+        </div>
+
+        <form class="process-form" action="{{ url_for('process_image') }}" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label" for="image">Изображение животного</label>
+
+                <label class="upload-box" for="image">
+                    <input
+                        class="upload-box__input"
+                        type="file"
+                        id="image"
+                        name="image"
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        required
+                    >
+                    <span class="upload-box__icon">↑</span>
+                    <span class="upload-box__title">Нажмите, чтобы выбрать изображение</span>
+                    <span class="upload-box__text">
+                        Файл будет сохранен локально в каталоге приложения и использован только для выбранной обработки.
+                    </span>
+                    <span class="upload-box__filename" id="selected-file-name">Файл не выбран</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="operation_type">Сценарий обработки</label>
+                <select class="form-control" id="operation_type" name="operation_type">
+                    {% for item in operation_types %}
+                        <option value="{{ item.value }}"
+                                {% if item.value == "full_pipeline" %}selected{% endif %}>
+                            {{ item.name_ru }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">
+                    Полный конвейер сначала восстанавливает качество изображения, затем выделяет объект и обрабатывает фон.
+                </p>
+            </div>
+
+            <div class="form-section" id="restoration-section">
+                <div class="form-section__header">
+                    <h3 class="form-section__title">Настройки восстановления качества</h3>
+                    <p class="form-section__text">
+                        Модель второго эксперимента применяет нейросетевую правку к изображению.
+                        В адаптивном режиме сила обработки зависит от предполагаемого типа ухудшения.
+                    </p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="restoration_mode">Режим восстановления</label>
+                        <select class="form-control" id="restoration_mode" name="restoration_mode">
+                            {% for item in restoration_modes %}
+                                <option value="{{ item.value }}"
+                                        {% if item.value == default_restoration_mode %}selected{% endif %}>
+                                    {{ item.name_ru }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="degradation_type">Предполагаемый тип ухудшения</label>
+                        <select class="form-control" id="degradation_type" name="degradation_type">
+                            {% for item in degradation_types %}
+                                <option value="{{ item.value }}"
+                                        {% if item.value == default_degradation_type %}selected{% endif %}>
+                                    {{ item.name_ru }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="notice notice--soft">
+                    <strong>Важно:</strong>
+                    в пользовательском приложении нет эталонного изображения, поэтому структурное сходство
+                    и отношение сигнала к искажению для загруженного файла не рассчитываются напрямую.
+                    Эти показатели используются как справочные результаты контрольного эксперимента.
+                </div>
+            </div>
+
+            <div class="form-section" id="segmentation-section">
+                <div class="form-section__header">
+                    <h3 class="form-section__title">Настройки сегментации и фона</h3>
+                    <p class="form-section__text">
+                        Модель первого эксперимента выделяет животное на изображении и позволяет получить маску,
+                        прозрачный фон, размытый фон или простой сгенерированный фон.
+                    </p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="segmentation_mode">Режим обработки фона</label>
+                        <select class="form-control" id="segmentation_mode" name="segmentation_mode">
+                            {% for item in segmentation_modes %}
+                                <option value="{{ item.value }}"
+                                        {% if item.value == default_segmentation_mode %}selected{% endif %}>
+                                    {{ item.name_ru }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="background-variant-group">
+                        <label class="form-label" for="background_variant">Вариант простого фона</label>
+                        <select class="form-control" id="background_variant" name="background_variant">
+                            {% for item in background_variants %}
+                                <option value="{{ item.value }}">{{ item.name_ru }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="blur-radius-group">
+                        <label class="form-label" for="blur_radius">Сила размытия фона</label>
+                        <input
+                            class="form-control"
+                            type="number"
+                            id="blur_radius"
+                            name="blur_radius"
+                            min="1"
+                            max="60"
+                            value="18"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section__header">
+                    <h3 class="form-section__title">Текстовое объяснение</h3>
+                    <p class="form-section__text">
+                        Локальный отчет формируется всегда. Обращение к языковой модели можно включить отдельно,
+                        чтобы не расходовать ключи доступа без необходимости.
+                    </p>
+                </div>
+
+                <div class="checkbox-grid">
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="use_llm" value="1">
+                        <span>
+                            <strong>Сформировать отчет через языковую модель</strong>
+                            <small>
+                                Во внешний сервис передаются только численные показатели и режимы обработки,
+                                без отправки самого изображения.
+                            </small>
+                        </span>
+                    </label>
+
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="force_llm" value="1">
+                        <span>
+                            <strong>Принудительно выполнить запрос</strong>
+                            <small>
+                                Используется для проверки подключения ProxyAPI, даже если в настройках выключен
+                                автоматический текстовый модуль.
+                            </small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="button button--primary" type="submit" {% if artifact_problems %}disabled{% endif %}>
+                    Запустить обработку
+                </button>
+                <a class="button button--secondary" href="{{ url_for('about') }}">
+                    Проверить состав системы
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <aside class="card card--side">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Как работает система</p>
+                <h2 class="card__title">Последовательность обработки</h2>
+            </div>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <span class="step__number">1</span>
+                <div>
+                    <h3 class="step__title">Загрузка изображения</h3>
+                    <p class="step__text">
+                        Пользователь выбирает изображение животного. Файл проверяется по формату и размеру.
+                    </p>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step__number">2</span>
+                <div>
+                    <h3 class="step__title">Восстановление качества</h3>
+                    <p class="step__text">
+                        Остаточная нейросетевая модель рассчитывает поправку к изображению и применяет
+                        калиброванный коэффициент.
+                    </p>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step__number">3</span>
+                <div>
+                    <h3 class="step__title">Сегментация объекта</h3>
+                    <p class="step__text">
+                        Модель выделяет животное, строит маску и применяет выбранную обработку фона.
+                    </p>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step__number">4</span>
+                <div>
+                    <h3 class="step__title">Отчет и история</h3>
+                    <p class="step__text">
+                        Результат сохраняется в истории, а пользователь получает изображение, маску,
+                        предпросмотр и текстовое объяснение.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="notice">
+            <strong>Рекомендация.</strong>
+            Для обычной проверки лучше выбрать полный конвейер. Для демонстрации отдельных
+            результатов диссертации можно запускать только восстановление или только сегментацию.
+        </div>
+    </aside>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const operationSelect = document.getElementById("operation_type");
+    const restorationSection = document.getElementById("restoration-section");
+    const segmentationSection = document.getElementById("segmentation-section");
+    const segmentationModeSelect = document.getElementById("segmentation_mode");
+    const backgroundVariantGroup = document.getElementById("background-variant-group");
+    const blurRadiusGroup = document.getElementById("blur-radius-group");
+    const imageInput = document.getElementById("image");
+    const selectedFileName = document.getElementById("selected-file-name");
+
+    function updateOperationSections() {
+        const operation = operationSelect.value;
+
+        if (operation === "restoration") {
+            restorationSection.classList.remove("is-hidden");
+            segmentationSection.classList.add("is-hidden");
+        } else if (operation === "segmentation") {
+            restorationSection.classList.add("is-hidden");
+            segmentationSection.classList.remove("is-hidden");
+        } else {
+            restorationSection.classList.remove("is-hidden");
+            segmentationSection.classList.remove("is-hidden");
+        }
+    }
+
+    function updateSegmentationFields() {
+        const mode = segmentationModeSelect.value;
+
+        if (mode === "replace_background") {
+            backgroundVariantGroup.classList.remove("is-hidden");
+        } else {
+            backgroundVariantGroup.classList.add("is-hidden");
+        }
+
+        if (mode === "blur_background") {
+            blurRadiusGroup.classList.remove("is-hidden");
+        } else {
+            blurRadiusGroup.classList.add("is-hidden");
+        }
+    }
+
+    function updateSelectedFileName() {
+        if (!imageInput.files || imageInput.files.length === 0) {
+            selectedFileName.textContent = "Файл не выбран";
+            return;
+        }
+
+        selectedFileName.textContent = imageInput.files[0].name;
+    }
+
+    operationSelect.addEventListener("change", updateOperationSections);
+    segmentationModeSelect.addEventListener("change", updateSegmentationFields);
+    imageInput.addEventListener("change", updateSelectedFileName);
+
+    updateOperationSections();
+    updateSegmentationFields();
+    updateSelectedFileName();
+</script>
+{% endblock %}
