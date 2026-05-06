@@ -1,0 +1,236 @@
+<!-- templates/history.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">История</p>
+        <h1 class="page-heading__title">История обработки изображений</h1>
+        <p class="page-heading__text">
+            Здесь сохраняются выполненные операции, ссылки на изображения, отчеты и сведения
+            о работе текстового модуля.
+        </p>
+    </div>
+
+    <div class="page-heading__actions">
+        <a class="button button--secondary" href="{{ url_for('index') }}">
+            Новая обработка
+        </a>
+
+        {% if total_count > 0 %}
+            <form action="{{ url_for('clear_history_route') }}" method="post" class="inline-form" onsubmit="return confirm('Очистить всю историю? Файлы изображений не удаляются.');">
+                <button class="button button--danger" type="submit">
+                    Очистить историю
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="metric-card">
+        <span class="metric-card__value">{{ stats.total_count }}</span>
+        <span class="metric-card__label">всего записей</span>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-card__value">{{ stats.success_count }}</span>
+        <span class="metric-card__label">успешных обработок</span>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-card__value">{{ stats.error_count }}</span>
+        <span class="metric-card__label">ошибок</span>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-card__value">{{ stats.llm_success_count }}</span>
+        <span class="metric-card__label">отчетов через языковую модель</span>
+    </article>
+</section>
+
+<section class="card">
+    <div class="card__header">
+        <div>
+            <p class="eyebrow">Фильтр</p>
+            <h2 class="card__title">Отбор записей</h2>
+        </div>
+    </div>
+
+    <form class="filter-form" action="{{ url_for('history') }}" method="get">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="operation_type">Сценарий</label>
+                <select class="form-control" id="operation_type" name="operation_type">
+                    <option value="">все сценарии</option>
+                    {% for item in operation_types %}
+                        <option value="{{ item.value }}"
+                                {% if operation_type == item.value %}selected{% endif %}>
+                            {{ item.name_ru }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="status">Статус</label>
+                <select class="form-control" id="status" name="status">
+                    <option value="">все статусы</option>
+                    <option value="success" {% if status == "success" %}selected{% endif %}>
+                        успешные
+                    </option>
+                    <option value="error" {% if status == "error" %}selected{% endif %}>
+                        с ошибками
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="per_page">Записей на странице</label>
+                <select class="form-control" id="per_page" name="per_page">
+                    {% for value in [10, 20, 50, 100] %}
+                        <option value="{{ value }}" {% if per_page == value %}selected{% endif %}>
+                            {{ value }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="button button--primary" type="submit">
+                Применить фильтр
+            </button>
+            <a class="button button--secondary" href="{{ url_for('history') }}">
+                Сбросить
+            </a>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <div class="card__header">
+        <div>
+            <p class="eyebrow">Записи</p>
+            <h2 class="card__title">Найдено записей: {{ total_count }}</h2>
+        </div>
+    </div>
+
+    {% if records %}
+        <div class="history-list">
+            {% for record in records %}
+                <article class="history-item history-item--{{ record.status }}">
+                    <div class="history-item__preview">
+                        {% if record.preview_url %}
+                            <img src="{{ record.preview_url }}" alt="Предпросмотр обработки">
+                        {% elif record.result_url %}
+                            <img src="{{ record.result_url }}" alt="Результат обработки">
+                        {% elif record.input_url %}
+                            <img src="{{ record.input_url }}" alt="Исходное изображение">
+                        {% else %}
+                            <div class="history-item__placeholder">
+                                нет изображения
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="history-item__body">
+                        <div class="history-item__top">
+                            <div>
+                                <h3 class="history-item__title">
+                                    <a href="{{ url_for('result', record_uid=record.record_uid) }}">
+                                        {{ record.operation_name_ru }}
+                                    </a>
+                                </h3>
+                                <p class="history-item__meta">
+                                    {{ record.created_at }} · {{ record.source_filename }}
+                                </p>
+                            </div>
+
+                            <span class="status-badge status-badge--{{ record.status }}">
+                                {% if record.status == "success" %}
+                                    успешно
+                                {% elif record.status == "error" %}
+                                    ошибка
+                                {% else %}
+                                    {{ record.status }}
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <p class="history-item__summary">
+                            {{ record.short_summary }}
+                        </p>
+
+                        {% if record.error_text %}
+                            <pre class="error-box error-box--small">{{ record.error_text }}</pre>
+                        {% endif %}
+
+                        <div class="history-item__actions">
+                            <a class="button button--small" href="{{ url_for('result', record_uid=record.record_uid) }}">
+                                Открыть
+                            </a>
+
+                            {% if record.result_url %}
+                                <a class="button button--small button--secondary" href="{{ record.result_url }}" target="_blank">
+                                    Результат
+                                </a>
+                            {% endif %}
+
+                            {% if record.report_url %}
+                                <a class="button button--small button--secondary" href="{{ record.report_url }}" target="_blank">
+                                    Отчет
+                                </a>
+                            {% endif %}
+
+                            <form action="{{ url_for('delete_history_record', record_id=record.id) }}"
+                                  method="post"
+                                  class="inline-form"
+                                  onsubmit="return confirm('Удалить запись истории? Файлы результата останутся на диске.');">
+                                <button class="button button--small button--ghost-danger" type="submit">
+                                    Удалить запись
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        <nav class="pagination" aria-label="Постраничная навигация">
+            {% if has_prev %}
+                <a class="button button--secondary"
+                   href="{{ url_for('history', page=page - 1, per_page=per_page, operation_type=operation_type, status=status) }}">
+                    Назад
+                </a>
+            {% else %}
+                <span class="button button--disabled">Назад</span>
+            {% endif %}
+
+            <span class="pagination__current">
+                Страница {{ page }}
+            </span>
+
+            {% if has_next %}
+                <a class="button button--secondary"
+                   href="{{ url_for('history', page=page + 1, per_page=per_page, operation_type=operation_type, status=status) }}">
+                    Вперед
+                </a>
+            {% else %}
+                <span class="button button--disabled">Вперед</span>
+            {% endif %}
+        </nav>
+    {% else %}
+        <div class="empty-state">
+            <h3>История пока пуста</h3>
+            <p>
+                После первой обработки изображения здесь появятся записи с предпросмотром,
+                результатом и отчетом.
+            </p>
+            <a class="button button--primary" href="{{ url_for('index') }}">
+                Перейти к обработке
+            </a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
