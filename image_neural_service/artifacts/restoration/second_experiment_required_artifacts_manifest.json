@@ -1,0 +1,17 @@
+{
+    "дата_создания": "2026-05-04 16:22:46",
+    "назначение": "минимальный комплект артефактов второго эксперимента для пользовательского приложения",
+    "скопированные_файлы": [
+        "restoration_calibrated_model_second_experiment.pt",
+        "restoration_inference_config_second_experiment.json",
+        "text_report_config_second_experiment.json",
+        "user_restoration_report_second_experiment.md",
+        "final_test_summary_by_mode_second_experiment.csv",
+        "final_test_adaptive_by_type_second_experiment.csv",
+        "final_second_experiment_passport.json",
+        "final_second_experiment_dissertation_summary.md",
+        "final_test_restoration_examples_second_experiment.png"
+    ],
+    "отсутствующие_файлы": [],
+    "пояснение": "В архив включены только файлы, необходимые для применения модели восстановления, текстового объяснения результата и демонстрации итогового качества. Исходный набор данных, обучающие изображения, журналы и промежуточные файлы не включены."
+}
