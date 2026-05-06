@@ -1,0 +1,102 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        {% if page_title %}
+            {{ page_title }} — {{ app_name }}
+        {% else %}
+            {{ app_name }}
+        {% endif %}
+    </title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="app-header">
+            <div class="app-header__inner">
+                <a class="app-logo" href="{{ url_for('index') }}" aria-label="На главную">
+                    <span class="app-logo__mark">AI</span>
+                    <span class="app-logo__text">
+                        <span class="app-logo__title">Нейросетевая обработка изображений</span>
+                        <span class="app-logo__subtitle">сегментация, восстановление качества и отчет</span>
+                    </span>
+                </a>
+
+                <nav class="app-nav" aria-label="Основная навигация">
+                    <a class="app-nav__link {% if request.endpoint == 'index' %}is-active{% endif %}"
+                       href="{{ url_for('index') }}">
+                        Обработка
+                    </a>
+                    <a class="app-nav__link {% if request.endpoint == 'history' or request.endpoint == 'result' %}is-active{% endif %}"
+                       href="{{ url_for('history') }}">
+                        История
+                    </a>
+                    <a class="app-nav__link {% if request.endpoint == 'about' %}is-active{% endif %}"
+                       href="{{ url_for('about') }}">
+                        О системе
+                    </a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="app-main">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section class="flash-list" aria-label="Сообщения приложения">
+                        {% for category, message in messages %}
+                            <div class="flash flash--{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            {% if artifact_problems %}
+                <section class="system-warning">
+                    <div class="system-warning__icon">!</div>
+                    <div class="system-warning__content">
+                        <h2 class="system-warning__title">Не все файлы моделей найдены</h2>
+                        <p class="system-warning__text">
+                            Приложение запустилось, но обработка изображений будет недоступна,
+                            пока не будут добавлены обязательные артефакты.
+                        </p>
+                        <ul class="system-warning__list">
+                            {% for problem in artifact_problems %}
+                                <li>{{ problem }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </section>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="app-footer">
+            <div class="app-footer__inner">
+                <div>
+                    <strong>{{ app_name }}</strong>
+                    <span class="muted">версия {{ app_version }}</span>
+                </div>
+
+                <div class="app-footer__meta">
+                    <span>Форматы: {{ allowed_extensions }}</span>
+                    <span>Максимальный размер: {{ max_content_length_mb }} МБ</span>
+                    {% if llm_enabled %}
+                        <span class="status-dot status-dot--on">Текстовый модуль включен</span>
+                    {% else %}
+                        <span class="status-dot">Текстовый модуль отключен</span>
+                    {% endif %}
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
