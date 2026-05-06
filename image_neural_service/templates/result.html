@@ -1,0 +1,258 @@
+<!-- templates/result.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Результат обработки</p>
+        <h1 class="page-heading__title">
+            {% if record %}
+                {{ record.operation_name_ru }}
+            {% else %}
+                {{ page_title or "Результат" }}
+            {% endif %}
+        </h1>
+        <p class="page-heading__text">
+            {% if record %}
+                Запись сохранена в истории. На странице показаны исходное изображение, результат,
+                предварительный просмотр и отчет по выполненной обработке.
+            {% else %}
+                Ниже показана диагностическая информация.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="page-heading__actions">
+        <a class="button button--secondary" href="{{ url_for('index') }}">
+            Новая обработка
+        </a>
+        <a class="button button--secondary" href="{{ url_for('history') }}">
+            История
+        </a>
+    </div>
+</section>
+
+{% if record %}
+    <section class="result-status result-status--{{ record.status }}">
+        <div>
+            <span class="result-status__label">Статус</span>
+            <strong class="result-status__value">
+                {% if record.status == "success" %}
+                    обработка завершена
+                {% elif record.status == "error" %}
+                    ошибка обработки
+                {% else %}
+                    {{ record.status }}
+                {% endif %}
+            </strong>
+        </div>
+
+        <div>
+            <span class="result-status__label">Дата</span>
+            <strong class="result-status__value">{{ record.created_at }}</strong>
+        </div>
+
+        <div>
+            <span class="result-status__label">Файл</span>
+            <strong class="result-status__value">{{ record.source_filename }}</strong>
+        </div>
+
+        <div>
+            <span class="result-status__label">Текстовый модуль</span>
+            <strong class="result-status__value">
+                {% if record.llm_success %}
+                    отчет получен через языковую модель
+                {% elif record.llm_used %}
+                    запрос выполнен, использован локальный отчет
+                {% else %}
+                    использован локальный отчет
+                {% endif %}
+            </strong>
+        </div>
+    </section>
+
+    {% if record.error_text %}
+        <section class="card card--danger">
+            <div class="card__header">
+                <div>
+                    <p class="eyebrow">Ошибка</p>
+                    <h2 class="card__title">Обработка не была завершена</h2>
+                </div>
+            </div>
+            <pre class="error-box">{{ record.error_text }}</pre>
+        </section>
+    {% endif %}
+
+    <section class="result-grid">
+        <div class="card">
+            <div class="card__header">
+                <div>
+                    <p class="eyebrow">Изображения</p>
+                    <h2 class="card__title">Файлы результата</h2>
+                </div>
+            </div>
+
+            <div class="image-result-list">
+                {% if record.preview_url %}
+                    <article class="image-result">
+                        <div class="image-result__media">
+                            <img src="{{ record.preview_url }}" alt="Предварительный просмотр результата">
+                        </div>
+                        <div class="image-result__body">
+                            <h3 class="image-result__title">Предварительный просмотр</h3>
+                            <p class="image-result__text">
+                                Сравнительное изображение показывает состояние до и после обработки.
+                            </p>
+                            <a class="button button--small" href="{{ record.preview_url }}" target="_blank">
+                                Открыть файл
+                            </a>
+                        </div>
+                    </article>
+                {% endif %}
+
+                {% if record.result_url %}
+                    <article class="image-result">
+                        <div class="image-result__media">
+                            <img src="{{ record.result_url }}" alt="Итоговое изображение">
+                        </div>
+                        <div class="image-result__body">
+                            <h3 class="image-result__title">Итоговое изображение</h3>
+                            <p class="image-result__text">
+                                Основной файл, полученный после выбранного сценария обработки.
+                            </p>
+                            <a class="button button--small" href="{{ record.result_url }}" target="_blank">
+                                Открыть файл
+                            </a>
+                        </div>
+                    </article>
+                {% endif %}
+
+                {% if record.input_url %}
+                    <article class="image-result image-result--compact">
+                        <div class="image-result__media">
+                            <img src="{{ record.input_url }}" alt="Исходное изображение">
+                        </div>
+                        <div class="image-result__body">
+                            <h3 class="image-result__title">Исходное изображение</h3>
+                            <p class="image-result__text">
+                                Файл, загруженный пользователем.
+                            </p>
+                            <a class="button button--small" href="{{ record.input_url }}" target="_blank">
+                                Открыть файл
+                            </a>
+                        </div>
+                    </article>
+                {% endif %}
+
+                {% if not record.preview_url and not record.result_url and not record.input_url %}
+                    <div class="empty-state">
+                        <h3>Изображения отсутствуют</h3>
+                        <p>
+                            Для этой записи не найдено связанных файлов изображений.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <aside class="card">
+            <div class="card__header">
+                <div>
+                    <p class="eyebrow">Кратко</p>
+                    <h2 class="card__title">Сводка записи</h2>
+                </div>
+            </div>
+
+            <dl class="definition-list">
+                <div>
+                    <dt>Сценарий</dt>
+                    <dd>{{ record.operation_name_ru }}</dd>
+                </div>
+                <div>
+                    <dt>Статус</dt>
+                    <dd>{{ record.status }}</dd>
+                </div>
+                <div>
+                    <dt>Краткий вывод</dt>
+                    <dd>{{ record.short_summary }}</dd>
+                </div>
+                {% if record.report_url %}
+                    <div>
+                        <dt>Файл отчета</dt>
+                        <dd>
+                            <a href="{{ record.report_url }}" target="_blank">открыть Markdown-отчет</a>
+                        </dd>
+                    </div>
+                {% endif %}
+            </dl>
+
+            {% if llm_result %}
+                <div class="notice {% if llm_result.success %}notice--success{% else %}notice--soft{% endif %}">
+                    <strong>Текстовый модуль:</strong>
+                    {% if llm_result.success %}
+                        ответ получен через модель {{ llm_result.used_model }}.
+                    {% else %}
+                        внешний отчет не получен, показан локальный отчет.
+                    {% endif %}
+
+                    {% if llm_result.error_message %}
+                        <details class="details-block">
+                            <summary>Показать сведения</summary>
+                            <pre class="small-pre">{{ llm_result.error_message }}</pre>
+                        </details>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </aside>
+    </section>
+
+    <section class="card">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Отчет</p>
+                <h2 class="card__title">Интерпретация результата</h2>
+            </div>
+
+            {% if record.report_url %}
+                <a class="button button--small" href="{{ record.report_url }}" target="_blank">
+                    Открыть файл отчета
+                </a>
+            {% endif %}
+        </div>
+
+        <article class="markdown-report">
+            <pre>{{ display_report }}</pre>
+        </article>
+    </section>
+
+    {% if result_data %}
+        <section class="card">
+            <details class="details-block">
+                <summary>Показать технические данные записи</summary>
+                <pre class="json-box">{{ result_data | tojson(indent=2) }}</pre>
+            </details>
+        </section>
+    {% endif %}
+
+{% else %}
+    <section class="card">
+        <div class="card__header">
+            <div>
+                <p class="eyebrow">Сообщение</p>
+                <h2 class="card__title">{{ page_title or "Результат" }}</h2>
+            </div>
+        </div>
+
+        <article class="markdown-report">
+            <pre>{{ display_report }}</pre>
+        </article>
+
+        {% if result_data %}
+            <details class="details-block">
+                <summary>Показать технические данные</summary>
+                <pre class="json-box">{{ result_data | tojson(indent=2) }}</pre>
+            </details>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}
